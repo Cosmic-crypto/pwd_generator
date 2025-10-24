@@ -1,122 +1,259 @@
-import secrets
-import string
+from string import ascii_letters, digits, punctuation
+from secrets import choice
 
+# File that stores the saved filename for long-term use
+FILE_SAVE_REFERENCE = 'file_saved'
+
+
+def password_gen(length):
+    """
+    Generates a random password of the given length containing at least one digit.
+    """
+    chars = ascii_letters + digits + punctuation
+    password = [choice(chars) for _ in range(length)]
+
+    # Ensure password has at least one digit
+    if not any(c.isdigit() for c in password):
+        pos = choice(range(len(password)))
+        password[pos] = choice(digits)
+
+    return "".join(password)
+
+
+# Ask user for main mode (password manager or generator)
 try:
-    main_choice = input("Would you like to generate a password or password manager (if no answer is given program will assume that you chose password manager)\n").strip().lower() # asks user if they want to use the generator or password manager
-except: # if main_choice was not provided
-    main_choice = "password manager" # password manager will be chosen by default
-    print("Password manager has been chosen") # notifies the user that password manager was chosen
+    main_choice = input(
+        "Would you like to use the password generator or password manager?\n"
+        "(If no answer is given, password manager will be chosen by default): "
+    ).strip().lower()
+except Exception:
+    main_choice = "password manager"
+    print("Password manager has been chosen by default.")
 
-chars = string.ascii_letters + string.digits + string.punctuation # defining everything that can be in the password
+# -------------------------
+# PASSWORD MANAGER SECTION
+# -------------------------
+if main_choice in (
+    "password manager",
+    "password_manager",
+    "pwd_manager",
+    "pwd manager"
+):
+    mode = input(
+        "Would you like to add, find, or delete a password? (add/find/delete): "
+    ).strip().lower()
 
-if main_choice in ("password manager", "password_manager", "pwd_manager", "pwd manger"): # checks if user wants password generator
-    mode = input("Would you like to add to your password collection or find a password in your collection? (add/find/delete)\n").strip().lower() # To see if the user wants to add, find, or delete their passwords
-
+    # Try to load saved filename or ask user for one
     try:
-        filename = input("Enter a filename (if password not provided then it will be set to a file called password.txt):\n") # so the user can set their own file instead of being a default 'password.txt'
-    except: # if file name wasn't provided
-        filename = "password.txt" # filename is now 'password.txt'
-        print("filename is user will be 'password.txt'")
+        with open(FILE_SAVE_REFERENCE, "r") as file:
+            saved_filename = file.read().strip()
+        filename = saved_filename if saved_filename else input(
+            "Enter a filename (default is 'password.txt'): "
+        ).strip()
+        if not filename:
+            raise ValueError
+    except Exception:
+        filename = "password.txt"
+        print("Using default filename: 'password.txt'")
 
-    if mode == "add": # checks what they want to do
-        password_type = input("would you like to save your own password or a randomly generated password:\n").strip().lower() # asks user if they want to save their own password or a randomly generated password
-        if password_type in ("generated password", "generated_password"): # checks if the user has told to generate a password
+        save_choice = input(
+            "Do you want to save this filename for future use? (y/n): "
+        ).strip().lower()
+        if save_choice != 'n':
+            while True:
+                file_to_be_saved = input("Enter a name to save this file as: ").strip()
+                if file_to_be_saved:
+                    with open(FILE_SAVE_REFERENCE, 'w') as file:
+                        file.write(file_to_be_saved)
+                    break
+                else:
+                    print("Please enter a valid file name.")
+
+    # -------------------------
+    # ADD PASSWORD
+    # -------------------------
+    if mode == "add":
+        password_type = input(
+            "Would you like to save your own password or generate one? (own/generated): "
+        ).strip().lower()
+
+        # Generate a random password
+        if password_type in ("generated", "generated password", "generated_password"):
             try:
-                password_length = int(input("Enter the desired password length: ")) # asks user how long the password should be
-            except ValueError: # checks if the password type was wrong
-                password_length = 12 # sets it to a default 12
-                print("Invalid input. Using default length of 12.") # notifies the user that it is 12
+                password_length = int(input("Enter desired password length: "))
+            except ValueError:
+                password_length = 12
+                print("Invalid input. Using default length of 12.")
 
-            password = ''.join(secrets.choice(chars) for _ in range(password_length)) # password generation code
+            password = password_gen(password_length)
 
-            print("Generated password:", password) # shows the user the password
+            # Ask what the password is used for
+            while True:
+                password_reason = input("What is this password used for? ").strip()
+                if password_reason:
+                    break
+                print("Please enter a valid reason.")
 
-            password_reason = input("What is this password used for? ").strip() # password reason so the user can later check what the password is for
+            # Ensure no duplicates
+            try:
+                with open(filename, "r") as file:
+                    lines = file.readlines()
+            except FileNotFoundError:
+                lines = []
 
-            with open(filename, "a") as file: # opens a file by the name given by the user
-                file.write(f"{password_reason}: {password}\n") # writes the password and the reason
+            for line in lines:
+                if password in line:
+                    print("Generated password already exists. Generating a new one...")
+                    while True:
+                        new_password = password_gen(password_length)
+                        if new_password != password:
+                            password = new_password
+                            break
 
-            print("Password saved successfully!") # notifies user password has been saved
-        elif password_type in ("own_password", "own password"):
-            while True: # puts user into loops
-                password = input("Enter your password") # asks user for password
-                if password: # if password is a truthy value
-                    break #then it breaks the loop
-                else: # else
-                    print("Password not given") # it says password isn't given and carrys on
+                if password_reason.lower() in line.lower():
+                    print(f"A password for '{password_reason}' already exists.")
+                    while True:
+                        password_reason = input("Please enter another reason: ").strip()
+                        if password_reason and password_reason.lower() not in line.lower():
+                            break
+
+            # Save password
+            with open(filename, "a") as file:
+                file.write(f"{password_reason}: {password}\n")
+
+            print("Generated password:", password)
+            print("Password saved successfully!")
+
+        # Save user's own password
+        elif password_type in ("own", "own password", "own_password"):
+            while True:
+                password = input("Enter your password: ").strip()
+                if password:
+                    break
+                print("Password cannot be empty.")
+
+            while True:
+                password_reason = input("What is this password used for? ").strip()
+                if password_reason:
+                    break
+                print("Please enter a valid reason.")
+
+            # Avoid duplicates
+            try:
+                with open(filename, "r") as file:
+                    lines = file.readlines()
+            except FileNotFoundError:
+                lines = []
+
+            for line in lines:
+                if password in line:
+                    print("This password already exists.")
+                    while True:
+                        new_password = input("Enter a different password: ").strip()
+                        if new_password and new_password != password:
+                            password = new_password
+                            break
+
+                if password_reason.lower() in line.lower():
+                    print(f"A password for '{password_reason}' already exists.")
+                    while True:
+                        password_reason = input("Please enter another reason: ").strip()
+                        if password_reason:
+                            break
+
+            with open(filename, "a") as file:
+                file.write(f"{password_reason}: {password}\n")
+
+            print("Password saved successfully!")
+
         else:
             print("Invalid password type!")
 
-    elif mode == "find": # checks if the user wanted to find instead
-        search = input("Enter what password to find:\n").strip() # asks the user what password they want to find
-        found = False # sets found to false so we can track if anything was found
+    # -------------------------
+    # FIND PASSWORD
+    # -------------------------
+    elif mode == "find":
+        search = input("Enter what to find (keyword or reason): ").strip()
+        found = False
 
         try:
-            with open(filename, "r") as file: # opens the file in read mode
-                for line in file: # goes through every line in the file
-                    if search.lower() in line.lower():  # case-insensitive search
-                        print(f"\nFound: {line.strip()}") # prints what was found
-                        confirmation = input("Is this the one you want? (y/n): ").strip().lower() # asks the user if they are happy with the result
-                        if confirmation == "y": # checks if they are happy
-                            print("Bye!") # says bye and exits
-                            exit() # exits program
-                        else:
-                            continue # keeps searching
-            if not found: # if nothing was found
-                print("Couldn't find that password.") # notifies the user that it wasn't found
+            with open(filename, "r") as file:
+                for line in file:
+                    if search.lower() in line.lower():
+                        found = True
+                        print(f"\nFound: {line.strip()}")
+                        confirmation = input("Is this the one you want? (y/n): ").strip().lower()
+                        if confirmation == "y":
+                            print("Bye!")
+                            exit()
+            if not found:
+                print("Couldn't find that password.")
         except FileNotFoundError:
-            print("No password collection found yet. Add one first!") # safety feature just telling the user what is wrong
+            print("No password collection found yet. Add one first!")
 
-    elif mode == "delete": # checks if the user wants to delete a password
-        search = input("Enter what to delete:\n").strip() # asks the user what they want to delete
+    # -------------------------
+    # DELETE PASSWORD
+    # -------------------------
+    elif mode == "delete":
+        search = input("Enter keyword or reason to delete: ").strip()
+        master_password = 'shPd/mpM1MQ('  # Static master password for deletion
+
         try:
-            with open(filename, "r") as file: # opens the file in read mode
-                lines = file.readlines() # reads all the lines from the file
+            with open(filename, "r") as file:
+                lines = file.readlines()
 
-            new_lines = [] # list to store all lines except the ones we delete
-            deleted = False # variable to track if something was deleted
-            password_ = 'shPd/mpM1MQ(' # sets the master password for deletion
+            new_lines = []
+            deleted = False
 
-            for line in lines: # goes through all lines
-                if search.lower() in line.lower(): # checks if the search term is in the line (case-insensitive)
-                    print(f"Found: {line.strip()}") # shows what it found
-                    choice = input("Delete this? (y/n): ").strip().lower() # asks user for confirmation
-                    if choice == "y": # if user says yes to deletion
-                        for i in range(3): # gives the user 3 tries
-                            password_user = input("Enter the password: ").strip() # asks user to enter the master password
-                            if password_user == password_: # if the password is correct
-                                deleted = True # mark as deleted
-                                print("Password verified. Deleting entry...") # inform user
-                                break # break out of password loop
-                            else: # if password is incorrect
-                                print(f"Wrong password. Try again. You have {2 - i} tries left.") # shows remaining tries
+            for line in lines:
+                if search.lower() in line.lower():
+                    print(f"Found: {line.strip()}")
+                    confirm = input("Delete this entry? (y/n): ").strip().lower()
+                    if confirm == "y":
+                        for attempt in range(3):
+                            entered_pw = input("Enter master password: ").strip()
+                            if entered_pw == master_password:
+                                print("Password verified. Deleting entry...")
+                                deleted = True
+                                break
+                            else:
+                                print(f"Incorrect password. {2 - attempt} tries left.")
 
-                        if not deleted: # if password was never correct after 3 tries
-                            print("Too many failed attempts. Entry not deleted.") # warns user
-                            new_lines.append(line) # keep the line since deletion failed
-                            continue # move on to next line
-                        else:
-                            continue # skip adding this line (delete it)
-                new_lines.append(line) # adds the line if not deleted
+                        if not deleted:
+                            print("Failed verification. Entry not deleted.")
+                            new_lines.append(line)
+                        continue
+                new_lines.append(line)
 
-            if deleted: # checks if anything was deleted
-                with open(filename, "w") as file: # opens file in write mode to overwrite it
-                    file.writelines(new_lines) # writes back only the remaining lines
-                print("Selected entry deleted successfully.") # notifies user deletion is done
+            if deleted:
+                with open(filename, "w") as file:
+                    file.writelines(new_lines)
+                print("Selected entry deleted successfully.")
             else:
-                print("No entries deleted.") # tells user nothing was deleted
+                print("No entries deleted.")
         except FileNotFoundError:
-            print("No password collection found yet. Add one first!") # tells user the file doesn't exist yet
+            print("No password collection found yet. Add one first!")
 
     else:
-        print("Invalid option. Please enter either 'add', 'find', or 'delete'.") # informs user of invalid mode
-elif main_choice in ("password_generator", "password generator", "pwd generator", "pwd_generator"): # checks if user wanted password generator instead
-    try:
-        pwd_len = int(input("Enter an the password length")) # asks user the password length
-    except: # if the the password lenght wasn't provided or was wrong type
-        pwd_len = 12 # program writes it as 12
-        print("password length is 12") # notifies user that password length is 12
-    
-    pwd = "".join(secrets.choice(chars) for _ in range(pwd_len))
+        print("Invalid option. Please enter 'add', 'find', or 'delete'.")
 
-    print("Password is:", pwd)
+# -------------------------
+# PASSWORD GENERATOR SECTION
+# -------------------------
+elif main_choice in (
+    "password generator",
+    "password_generator",
+    "pwd generator",
+    "pwd_generator"
+):
+    try:
+        pwd_len = int(input("Enter desired password length: "))
+    except ValueError:
+        pwd_len = 12
+        print("Invalid input. Default length set to 12.")
+
+    password = password_gen(pwd_len)
+    print("Generated password:", password)
+
+else:
+    print("Invalid choice. Please select either 'password generator' or 'password manager'.")

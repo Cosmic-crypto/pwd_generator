@@ -4,7 +4,7 @@ from secrets import choice
 # File that stores the saved filename for long-term use
 FILE_SAVE_REFERENCE = 'file_saved'
 
-
+# create function to generate a password
 def password_gen(length):
     """
     Generates a random password of the given length containing at least one digit.
@@ -18,6 +18,11 @@ def password_gen(length):
         password[pos] = choice(digits)
 
     return "".join(password)
+
+# function to write in a file
+def file_writing(input_filename, what_to_write:str) -> str:
+    with open(input_filename, mode) as file:
+        file.write(what_to_write)
 
 
 # Ask user for main mode (password manager or generator)
@@ -118,8 +123,7 @@ if main_choice in (
                             break
 
             # Save password
-            with open(filename, "a") as file:
-                file.write(f"{password_reason}: {password}\n")
+            file_writing(filename, f"{password_reason}:{password}")
 
             print("Generated password:", password)
             print("Password saved successfully!")
@@ -175,64 +179,79 @@ if main_choice in (
     elif mode == "find":
         search = input("Enter what to find (keyword or reason): ").strip()
         found = False
-
-        try:
-            with open(filename, "r") as file:
-                for line in file:
-                    if search.lower() in line.lower():
-                        found = True
-                        print(f"\nFound: {line.strip()}")
-                        confirmation = input("Is this the one you want? (y/n): ").strip().lower()
-                        if confirmation == "y":
-                            print("Bye!")
-                            exit()
-            if not found:
-                print("Couldn't find that password.")
-        except FileNotFoundError:
-            print("No password collection found yet. Add one first!")
-
+        if search != "!*all*!":
+            try:
+                with open(filename, "r") as file:
+                    for line in file:
+                        if search.lower() in line.lower():
+                            found = True
+                            print(f"\nFound: {line.strip()}")
+                            confirmation = input("Is this the one you want? (y/n): ").strip().lower()
+                            if confirmation == "y":
+                                print("Bye!")
+                                exit()
+                if not found:
+                    print("Couldn't find that password.")
+            except FileNotFoundError:
+                print("No password collection found yet. Add one first!")
+        else:
+            confirm_ = input("WARNING: THIS WILL PRINT ALL THE SAVED USERNAME AND PASSWORD\ndo you wish to continue (y/n):\n").strip().lower()
+            if confirm_ in ("y", "yes"):
+                with open(filename,"r") as file:
+                    file.readlines()
     # -------------------------
     # DELETE PASSWORD
     # -------------------------
     elif mode == "delete":
         search = input("Enter keyword or reason to delete: ").strip()
         master_password = 'shPd/mpM1MQ('  # Static master password for deletion
+        if search != "!*all*!":
+            try:
+                with open(filename, "r") as file:
+                    lines = file.readlines()
 
-        try:
-            with open(filename, "r") as file:
-                lines = file.readlines()
+                new_lines = []
+                deleted = False
 
-            new_lines = []
-            deleted = False
+                for line in lines:
+                    if search.lower() in line.lower():
+                        print(f"Found: {line.strip()}")
+                        confirm = input("Delete this entry? (y/n): ").strip().lower()
+                        if confirm == "y":
+                            for attempt in range(3):
+                                entered_pw = input("Enter master password: ").strip()
+                                if entered_pw == master_password:
+                                    print("Password verified. Deleting entry...")
+                                    deleted = True
+                                    break
+                                else:
+                                    print(f"Incorrect password. {3 - attempt} tries left.")
 
-            for line in lines:
-                if search.lower() in line.lower():
-                    print(f"Found: {line.strip()}")
-                    confirm = input("Delete this entry? (y/n): ").strip().lower()
-                    if confirm == "y":
-                        for attempt in range(3):
-                            entered_pw = input("Enter master password: ").strip()
-                            if entered_pw == master_password:
-                                print("Password verified. Deleting entry...")
-                                deleted = True
-                                break
-                            else:
-                                print(f"Incorrect password. {2 - attempt} tries left.")
+                            if not deleted:
+                                print("Failed verification. Entry not deleted.")
+                                new_lines.append(line)
+                            continue
+                    new_lines.append(line)
 
-                        if not deleted:
-                            print("Failed verification. Entry not deleted.")
-                            new_lines.append(line)
-                        continue
-                new_lines.append(line)
+                if deleted:
+                    with open(filename, "w") as file:
+                        file.writelines(new_lines)
+                    print("Selected entry deleted successfully.")
+                else:
+                    print("No entries deleted.")
+            except FileNotFoundError:
+                print("No password collection found yet. Add one first!")
+        else:
+            confirm_ = input("WARNING: THIS WILL COMPLETLEY DESTROY EVERYTHING\ndo you want to do this (y/n):\n")
+            if confirm_ in ("y", "yes"):
+                for x in range(3):
+                    entered_pw = input("Enter the password:\n")
+                    if entered_pw == master_password:
+                        ultimate_confirmation = input("Enter the final confirmation by typing delete:").strip().lower()
+                        if ultimate_confirmation == "delete":
+                            with open(filename, "w") as file:
+                                pass
 
-            if deleted:
-                with open(filename, "w") as file:
-                    file.writelines(new_lines)
-                print("Selected entry deleted successfully.")
-            else:
-                print("No entries deleted.")
-        except FileNotFoundError:
-            print("No password collection found yet. Add one first!")
 
     else:
         print("Invalid option. Please enter 'add', 'find', or 'delete'.")

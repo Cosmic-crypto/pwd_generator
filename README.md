@@ -87,6 +87,16 @@ The program will show matching entries and ask for confirmation:
 Found: Email: kD8*Q4!aZ9xP
 Is this the one you want? (y/n):
 ```
+You can also have it write everything out by typing !*all*!:
+```
+Enter a keyword or reason (e.g., "email" or "bank") to search.
+The program will show matching entries and ask for confirmation:!*all*!
+
+WARNING: THIS WILL PRINT ALL THE SAVED USERNAMES AND PASSWORDS
+do you wish to continue (y/n):
+y
+...
+```
 
 Delete a Password
 
@@ -99,7 +109,20 @@ Enter master password:
 
 Default master password:
 
-shPd/mpM1MQ(
+shPd/mpM1MQ( (Can change to anything, I generated this with the program).
+
+You can also delete everything you have by typing !*all*!
+there are security features for this and this is fool proof
+
+```
+WARNING: THIS WILL COMPLETLEY DESTROY EVERYTHING
+do you want to do this (y/n):
+y
+enter the password: shPd/mpM1MQ(
+Enter the final confirmation by typing 'delete':
+delete
+Everything in your password collection has been deleted
+```
 
 3. Password Generator
 

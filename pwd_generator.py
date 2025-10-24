@@ -251,6 +251,7 @@ if main_choice in (
                         if ultimate_confirmation == "delete":
                             with open(filename, "w") as file:
                                 pass
+                            print("Everything in your password collection has been deleted")
 
 
     else:
@@ -276,3 +277,4 @@ elif main_choice in (
 
 else:
     print("Invalid choice. Please select either 'password generator' or 'password manager'.")
+

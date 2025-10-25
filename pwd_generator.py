@@ -1,6 +1,8 @@
 from string import ascii_letters, digits, punctuation
 from secrets import choice
 
+from login_signup_program.main import data_saved
+
 # File that stores the saved filename for long-term use
 FILE_SAVE_REFERENCE = 'file_saved'
 
@@ -23,6 +25,17 @@ def password_gen(length):
 def file_writing(input_filename, what_to_write:str) -> str:
     with open(input_filename, mode) as file:
         file.write(what_to_write)
+
+data_saved = {}
+
+with open(FILE_SAVE_REFERENCE, "a") as file:
+    for line in file:
+        parts = line.strip().split(",")
+
+        if len(parts) == 2:
+            password_reason, password = parts
+            data_saved[password_reason] = password
+
 
 
 # Ask user for main mode (password manager or generator)
@@ -99,28 +112,20 @@ if main_choice in (
                     break
                 print("Please enter a valid reason.")
 
-            # Ensure no duplicates
-            try:
-                with open(filename, "r") as file:
-                    lines = file.readlines()
-            except FileNotFoundError:
-                lines = []
+            if password in data_saved:
+                while True:
+                    print("password we generated was already in your collection")
+                    password = password_gen(password_length)
+                    
+                    if password not in data_saved:
+                        break
+            if password_reason in data_saved:
+                while True:
+                    print("Password reason already in use")
+                    password_reason = input("What is the reason you are using this password")
 
-            for line in lines:
-                if password in line:
-                    print("Generated password already exists. Generating a new one...")
-                    while True:
-                        new_password = password_gen(password_length)
-                        if new_password != password:
-                            password = new_password
-                            break
-
-                if password_reason.lower() in line.lower():
-                    print(f"A password for '{password_reason}' already exists.")
-                    while True:
-                        password_reason = input("Please enter another reason: ").strip()
-                        if password_reason and password_reason.lower() not in line.lower():
-                            break
+                    if password_reason not in data_saved:
+                        break
 
             # Save password
             file_writing(filename, f"{password_reason}:{password}")
@@ -251,7 +256,7 @@ if main_choice in (
                         if ultimate_confirmation == "delete":
                             with open(filename, "w") as file:
                                 pass
-                            print("Everything in your password collection has been deleted")
+                        print("Everything in your password collection has been deleted")
 
 
     else:
@@ -277,4 +282,3 @@ elif main_choice in (
 
 else:
     print("Invalid choice. Please select either 'password generator' or 'password manager'.")
-

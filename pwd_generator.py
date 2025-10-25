@@ -1,8 +1,6 @@
 from string import ascii_letters, digits, punctuation
 from secrets import choice
 
-from login_signup_program.main import data_saved
-
 # File that stores the saved filename for long-term use
 FILE_SAVE_REFERENCE = 'file_saved'
 
@@ -282,3 +280,4 @@ elif main_choice in (
 
 else:
     print("Invalid choice. Please select either 'password generator' or 'password manager'.")
+
